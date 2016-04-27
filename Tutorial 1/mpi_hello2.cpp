@@ -23,8 +23,8 @@ int main(int argc, char **argv)
     cout << "This is rank 0 talking to my " << size << " friends." << endl << endl; 
     std::string hello("Hello my fellow processes!");
     for (int i = 1; i < size; i++) { // Start at one, we don't want to send a message to ourself, see footnote
-      //         MPI_Send(void* data,    int count,    MPI_Datatype datatype, int destination, int tag, MPI_Comm communicator);
-      int ierr = MPI_Send(hello.c_str(), hello.size(), MPI_CHAR,              i,               0,       MPI_COMM_WORLD);
+      //         MPI_Send(void* data,                       int count,    MPI_Datatype datatype, int destination, int tag, MPI_Comm communicator);
+      int ierr = MPI_Send(const_cast<char*>(hello.c_str()), hello.size(), MPI_CHAR,              i,               0,       MPI_COMM_WORLD);
       cout << "Sent: " << hello << " with return code " << ierr << endl;
     }
   }
