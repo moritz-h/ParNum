@@ -1,61 +1,66 @@
 import numpy as np
 import scipy.linalg
-from numpy import dot
+import timeit
 import matplotlib.pyplot as plt
 
 tolerance = 1e-3
-max_iter = 100
+max_iter = 500
 N = 40
 cg_residuals = []
 gr_residuals = []
 
-def CG(A, x0, b):
+
+def CG(A, x, b):
+    """ Preconditioned Conjugate Gradients algorithm, see p. 94 in script. """
     iter = 1
     # P = np.identity(N) # Preconditioner
     P = np.linalg.inv(np.diagflat(np.diag(A))) # Jacobi Preconditoner P = diag(A)^-1
-    print(P)
-    print(A)
 
-    r0 = b - dot(A, x0) # For the first iteration search direction is like with gradient methods
-    h0 = dot(P, r0)
-    p0 = h0.copy()
+    r0 = b - A @ x # For the first iteration search direction is like with gradient methods
+    h0 = P @ r0
+    p = h0.copy()
         
     while True:
-        a0 = (dot(r0, h0)) / (dot(p0, dot(A, p0))) # Search direction
-        x1 = x0 + dot(a0, p0)
-        r1 = r0 - dot(a0, dot(A, p0))
-        h1 = dot(P, r1) # Apply preconditioner
+        a = (r0 @ h0) / (p @ A @ p) # Step size
+        x = x + a * p # New solutaiton
+        r1 = r0 - (a * A @ p)
+        h1 = P @ r1 # Apply preconditioner
         cg_residuals.append(np.linalg.norm(r1))
-        if np.linalg.norm(b-dot(A,x1)) < tolerance or iter > max_iter:
+        if np.linalg.norm(b - A @ x) < tolerance:
+            print("CG: Converged after %i iterations." % iter)
             break
-        b0 = dot(r1, h1) / dot(r0, h0)
-        p1 = h1 + dot(b0, p0)        
+        elif iter > max_iter:
+            print("CG: Maximum iterations reached.")
+            break
+        beta = (r1 @ h1) / (r0 @ h0)
+        p = h1 + beta * p # Search direction
         iter += 1
         r0 = r1.copy()
-        p0 = p1.copy()
-        x0 = x1.copy()
         h0 = h1.copy()
-    return x1
+    return x
 
-def gradient(A, x0, b):
+
+def gradient(A, x, b):
     iter = 1
-    r0 = b - dot(A, x0)
+    r = b - A @ x # Residual
     while True:
-        a0 = dot(r0, np.transpose(r0)) / dot(np.transpose(r0), dot(A, r0))
-        x1 = x0 + dot(a0, r0)
-        r1 = b - dot(A,x1) 
-        gr_residuals.append(np.linalg.norm(r1))
-        if np.linalg.norm(r1) < tolerance or iter > max_iter:
+        a = (r @ np.transpose(r)) / (np.transpose(r) @ A @ r) # Step size
+        x = x + a * r # New solution = old solution + search direction * residual
+        r = b - A @ x # New residual
+        gr_residuals.append(np.linalg.norm(r))
+        if np.linalg.norm(r) < tolerance:
+            print("Gradient: Converged after %i iterations." % iter)
+            break
+        elif iter > max_iter:
+            print("Gradient: Maximum iterations reached.")
             break
         iter += 1
-        r0 = r1.copy()
-        x0 = x1.copy()
-    return x1
+    return x
 
 
 A = np.random.rand(N, N)
-A = np.dot(A, np.transpose(A)) + 4*np.identity(N) # A*A^T will get us a SPD matrix
-x0 = np.zeros(N)
+A = A @ np.transpose(A) + 4*np.identity(N) # A*A^T will get us a SPD matrix which is diagonal-dominant
+x0 = np.zeros(N) # Start vector
 b = np.array(range(1, N+1))
 
 ev = scipy.linalg.eig(A)[0]
@@ -69,6 +74,8 @@ gr_solution = gradient(A, x0, b)
 print("Delta Conjugate Gradient = ", np.linalg.norm(cg_solution - sp_solution))
 print("Delta Simple Gradient = ", np.linalg.norm(gr_solution - sp_solution))
 
-plt.plot(range(len(cg_residuals)), cg_residuals, "rx-")
-plt.plot(range(len(gr_residuals)), gr_residuals, "bx-")
+plt.plot(range(len(cg_residuals)), cg_residuals, "rx-", label="CG Residuals")
+plt.plot(range(len(gr_residuals)), gr_residuals, "bx-", label="Gradient Residuals")
+plt.legend()
+plt.grid()
 plt.show()
