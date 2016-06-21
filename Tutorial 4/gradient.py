@@ -22,7 +22,7 @@ def CG(A, x, b):
         
     while True:
         a = (r0 @ h0) / (p @ A @ p) # Step size
-        x = x + a * p # New solutaiton
+        x = x + a * p # New solution
         r1 = r0 - (a * A @ p)
         h1 = P @ r1 # Apply preconditioner
         cg_residuals.append(np.linalg.norm(r1))
@@ -68,7 +68,7 @@ if np.any(np.real(ev) < 0):
     print("Negative Eigenvalues, matrix is not semi-positive definite!")
 
 t = time.perf_counter()
-sp_solution = scipy.linalg.solve(A,b)
+sp_solution = scipy.linalg.solve(A,b) # Hint: sym_pos=True
 t_sp = time.perf_counter()-t
 
 t = time.perf_counter()
